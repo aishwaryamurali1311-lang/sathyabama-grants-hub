@@ -6,63 +6,49 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 import { Download, Filter } from 'lucide-react';
-import { mockProjects } from '@/data/mockData';
+import { useProjects } from '@/hooks/useProjects';
 import { cn } from '@/lib/utils';
+import { Skeleton } from '@/components/ui/skeleton';
+
+const statusMap: Record<string, string> = {
+  on_going: 'On-Going', completed: 'Completed', terminated: 'Terminated',
+};
 
 const ProjectsTable: React.FC = () => {
   const navigate = useNavigate();
+  const { data: projects, isLoading } = useProjects();
   const [filters, setFilters] = useState({
-    id: '',
-    referenceId: '',
-    title: '',
-    department: '',
-    duration: '',
-    agency: '',
-    budget: '',
-    status: '',
-    date: '',
-    pi: '',
+    title: '', department: '', agency: '', status: '',
   });
-  
   const [selectedDocs, setSelectedDocs] = useState({
-    sanctionLetter: false,
-    utilizationCertificates: false,
-    releaseOrder: false,
-    activitiesReports: false,
+    sanctionLetter: false, utilizationCertificates: false,
+    releaseOrder: false, activitiesReports: false,
   });
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-IN').format(amount);
-  };
+  const formatCurrency = (amount: number) => new Intl.NumberFormat('en-IN').format(amount);
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Completed':
-        return 'text-success';
-      case 'On-Going':
-        return 'text-success';
-      case 'Terminated':
-        return 'text-destructive';
-      default:
-        return 'text-muted-foreground';
+      case 'completed': return 'text-success';
+      case 'on_going': return 'text-success';
+      case 'terminated': return 'text-destructive';
+      default: return 'text-muted-foreground';
     }
   };
 
-  const filteredProjects = mockProjects.filter(project => {
+  const filteredProjects = (projects ?? []).filter(project => {
     if (filters.title && !project.title.toLowerCase().includes(filters.title.toLowerCase())) return false;
-    if (filters.department && !project.department.toLowerCase().includes(filters.department.toLowerCase())) return false;
-    if (filters.agency && !project.fundingAgency.toLowerCase().includes(filters.agency.toLowerCase())) return false;
-    if (filters.status && !project.status.toLowerCase().includes(filters.status.toLowerCase())) return false;
+    if (filters.agency && !project.funding_agency.toLowerCase().includes(filters.agency.toLowerCase())) return false;
+    if (filters.status && !(statusMap[project.status] || '').toLowerCase().includes(filters.status.toLowerCase())) return false;
     return true;
   });
+
+  if (isLoading) {
+    return <MainLayout><Skeleton className="h-96 w-full" /></MainLayout>;
+  }
 
   return (
     <MainLayout>
@@ -71,48 +57,34 @@ const ProjectsTable: React.FC = () => {
           <CardTitle className="text-lg">Project Display Table</CardTitle>
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
-              <Checkbox 
-                id="sanctionLetter"
-                checked={selectedDocs.sanctionLetter}
+              <Checkbox id="sanctionLetter" checked={selectedDocs.sanctionLetter}
                 onCheckedChange={(checked) => setSelectedDocs(prev => ({ ...prev, sanctionLetter: !!checked }))}
-                className="border-primary-foreground data-[state=checked]:bg-primary-foreground data-[state=checked]:text-primary"
-              />
+                className="border-primary-foreground data-[state=checked]:bg-primary-foreground data-[state=checked]:text-primary" />
               <label htmlFor="sanctionLetter" className="text-sm">Sanction Letter</label>
             </div>
             <div className="flex items-center gap-2">
-              <Checkbox 
-                id="utilizationCertificates"
-                checked={selectedDocs.utilizationCertificates}
+              <Checkbox id="utilizationCertificates" checked={selectedDocs.utilizationCertificates}
                 onCheckedChange={(checked) => setSelectedDocs(prev => ({ ...prev, utilizationCertificates: !!checked }))}
-                className="border-primary-foreground data-[state=checked]:bg-primary-foreground data-[state=checked]:text-primary"
-              />
+                className="border-primary-foreground data-[state=checked]:bg-primary-foreground data-[state=checked]:text-primary" />
               <label htmlFor="utilizationCertificates" className="text-sm">Utilization Certificates</label>
             </div>
             <div className="flex items-center gap-2">
-              <Checkbox 
-                id="releaseOrder"
-                checked={selectedDocs.releaseOrder}
+              <Checkbox id="releaseOrder" checked={selectedDocs.releaseOrder}
                 onCheckedChange={(checked) => setSelectedDocs(prev => ({ ...prev, releaseOrder: !!checked }))}
-                className="border-primary-foreground data-[state=checked]:bg-primary-foreground data-[state=checked]:text-primary"
-              />
+                className="border-primary-foreground data-[state=checked]:bg-primary-foreground data-[state=checked]:text-primary" />
               <label htmlFor="releaseOrder" className="text-sm">Release Order</label>
             </div>
             <div className="flex items-center gap-2">
-              <Checkbox 
-                id="activitiesReports"
-                checked={selectedDocs.activitiesReports}
+              <Checkbox id="activitiesReports" checked={selectedDocs.activitiesReports}
                 onCheckedChange={(checked) => setSelectedDocs(prev => ({ ...prev, activitiesReports: !!checked }))}
-                className="border-primary-foreground data-[state=checked]:bg-primary-foreground data-[state=checked]:text-primary"
-              />
-              <label htmlFor="activitiesReports" className="text-sm">Activites Reports</label>
+                className="border-primary-foreground data-[state=checked]:bg-primary-foreground data-[state=checked]:text-primary" />
+              <label htmlFor="activitiesReports" className="text-sm">Activities Reports</label>
             </div>
             <Button variant="secondary" size="sm" className="text-primary">
-              <Download className="h-4 w-4 mr-1" />
-              Get Documents
+              <Download className="h-4 w-4 mr-1" />Get Documents
             </Button>
             <Button variant="secondary" size="sm" className="text-destructive">
-              <Download className="h-4 w-4 mr-1" />
-              Export as CSV
+              <Download className="h-4 w-4 mr-1" />Export as CSV
             </Button>
           </div>
         </CardHeader>
@@ -125,7 +97,7 @@ const ProjectsTable: React.FC = () => {
                   <TableHead>Reference ID</TableHead>
                   <TableHead>Title</TableHead>
                   <TableHead>Department</TableHead>
-                  <TableHead>Duration (in months)</TableHead>
+                  <TableHead>Duration (months)</TableHead>
                   <TableHead>Agency</TableHead>
                   <TableHead>Sanctioned Budget (₹)</TableHead>
                   <TableHead>Status</TableHead>
@@ -134,121 +106,45 @@ const ProjectsTable: React.FC = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {/* Filter row */}
                 <TableRow className="bg-muted/30">
+                  <TableCell><Filter className="h-3 w-3 text-muted-foreground" /></TableCell>
+                  <TableCell></TableCell>
                   <TableCell>
-                    <Input 
-                      className="h-8 w-16" 
-                      placeholder=""
-                      value={filters.id}
-                      onChange={(e) => setFilters(prev => ({ ...prev, id: e.target.value }))}
-                    />
-                    <Filter className="h-3 w-3 mt-1 text-muted-foreground" />
+                    <Input className="h-8" placeholder="" value={filters.title}
+                      onChange={(e) => setFilters(prev => ({ ...prev, title: e.target.value }))} />
                   </TableCell>
+                  <TableCell></TableCell>
+                  <TableCell></TableCell>
                   <TableCell>
-                    <Input 
-                      className="h-8" 
-                      placeholder=""
-                      value={filters.referenceId}
-                      onChange={(e) => setFilters(prev => ({ ...prev, referenceId: e.target.value }))}
-                    />
-                    <Filter className="h-3 w-3 mt-1 text-muted-foreground" />
+                    <Input className="h-8" placeholder="" value={filters.agency}
+                      onChange={(e) => setFilters(prev => ({ ...prev, agency: e.target.value }))} />
                   </TableCell>
+                  <TableCell></TableCell>
                   <TableCell>
-                    <Input 
-                      className="h-8" 
-                      placeholder=""
-                      value={filters.title}
-                      onChange={(e) => setFilters(prev => ({ ...prev, title: e.target.value }))}
-                    />
-                    <Filter className="h-3 w-3 mt-1 text-muted-foreground" />
+                    <Input className="h-8" placeholder="" value={filters.status}
+                      onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))} />
                   </TableCell>
-                  <TableCell>
-                    <Input 
-                      className="h-8" 
-                      placeholder=""
-                      value={filters.department}
-                      onChange={(e) => setFilters(prev => ({ ...prev, department: e.target.value }))}
-                    />
-                    <Filter className="h-3 w-3 mt-1 text-muted-foreground" />
-                  </TableCell>
-                  <TableCell>
-                    <Input 
-                      className="h-8" 
-                      placeholder=""
-                      value={filters.duration}
-                      onChange={(e) => setFilters(prev => ({ ...prev, duration: e.target.value }))}
-                    />
-                    <Filter className="h-3 w-3 mt-1 text-muted-foreground" />
-                  </TableCell>
-                  <TableCell>
-                    <Input 
-                      className="h-8" 
-                      placeholder=""
-                      value={filters.agency}
-                      onChange={(e) => setFilters(prev => ({ ...prev, agency: e.target.value }))}
-                    />
-                    <Filter className="h-3 w-3 mt-1 text-muted-foreground" />
-                  </TableCell>
-                  <TableCell>
-                    <Input 
-                      className="h-8" 
-                      placeholder=""
-                      value={filters.budget}
-                      onChange={(e) => setFilters(prev => ({ ...prev, budget: e.target.value }))}
-                    />
-                    <Filter className="h-3 w-3 mt-1 text-muted-foreground" />
-                  </TableCell>
-                  <TableCell>
-                    <Input 
-                      className="h-8" 
-                      placeholder=""
-                      value={filters.status}
-                      onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
-                    />
-                    <Filter className="h-3 w-3 mt-1 text-muted-foreground" />
-                  </TableCell>
-                  <TableCell>
-                    <Input 
-                      className="h-8" 
-                      placeholder=""
-                      value={filters.date}
-                      onChange={(e) => setFilters(prev => ({ ...prev, date: e.target.value }))}
-                    />
-                    <Filter className="h-3 w-3 mt-1 text-muted-foreground" />
-                  </TableCell>
-                  <TableCell>
-                    <Input 
-                      className="h-8" 
-                      placeholder=""
-                      value={filters.pi}
-                      onChange={(e) => setFilters(prev => ({ ...prev, pi: e.target.value }))}
-                    />
-                    <Filter className="h-3 w-3 mt-1 text-muted-foreground" />
-                  </TableCell>
+                  <TableCell></TableCell>
+                  <TableCell></TableCell>
                 </TableRow>
-                
-                {/* Data rows */}
+
                 {filteredProjects.map((project, idx) => (
-                  <TableRow 
-                    key={project.id} 
-                    className="cursor-pointer hover:bg-muted/50"
-                    onClick={() => navigate(`/project/${project.id}`)}
-                  >
+                  <TableRow key={project.id} className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => navigate(`/project/${project.id}`)}>
                     <TableCell className="font-medium">{idx + 1}</TableCell>
-                    <TableCell className="text-primary hover:underline">{project.referenceId}</TableCell>
+                    <TableCell className="text-primary hover:underline">{project.reference_id}</TableCell>
                     <TableCell className="text-primary hover:underline truncate max-w-[150px]">{project.title}</TableCell>
-                    <TableCell>{project.department}</TableCell>
-                    <TableCell>{project.durationMonths}</TableCell>
-                    <TableCell>{project.fundingAgency}</TableCell>
-                    <TableCell>{formatCurrency(project.sanctionedBudget)}</TableCell>
+                    <TableCell>{(project.departments as any)?.name}</TableCell>
+                    <TableCell>{project.duration_months}</TableCell>
+                    <TableCell>{project.funding_agency}</TableCell>
+                    <TableCell>{formatCurrency(Number(project.sanctioned_budget))}</TableCell>
                     <TableCell>
                       <span className={cn('font-medium', getStatusColor(project.status))}>
-                        {project.status}
+                        {statusMap[project.status] || project.status}
                       </span>
                     </TableCell>
-                    <TableCell>{project.sanctionedDate}</TableCell>
-                    <TableCell></TableCell>
+                    <TableCell>{project.sanctioned_date}</TableCell>
+                    <TableCell>{(project.profiles as any)?.name}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

@@ -14,14 +14,19 @@ import RequestStatus from "./pages/RequestStatus";
 import ChangePassword from "./pages/ChangePassword";
 import Announcements from "./pages/Announcements";
 import HODDashboard from "./pages/HODDashboard";
+import CreateUser from "./pages/CreateUser";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
 // Protected Route wrapper
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, loading } = useAuth();
   
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center"><p>Loading...</p></div>;
+  }
+
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
@@ -29,29 +34,17 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
-// Role-based route component
-const RoleBasedHome = () => {
-  const { user } = useAuth();
-  
-  if (user?.role === 'hod' || user?.role === 'dean') {
-    return <HODDashboard />;
-  }
-  
-  return <FacultyHome />;
-};
-
 const AppRoutes = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center"><p>Loading...</p></div>;
+  }
 
   return (
     <Routes>
-      {/* Public routes */}
-      <Route 
-        path="/login" 
-        element={isAuthenticated ? <Navigate to="/home" replace /> : <Login />} 
-      />
+      <Route path="/login" element={isAuthenticated ? <Navigate to="/home" replace /> : <Login />} />
       
-      {/* Protected routes */}
       <Route path="/home" element={<ProtectedRoute><FacultyHome /></ProtectedRoute>} />
       <Route path="/dashboard" element={<ProtectedRoute><HODDashboard /></ProtectedRoute>} />
       <Route path="/projects" element={<ProtectedRoute><FacultyHome /></ProtectedRoute>} />
@@ -60,12 +53,9 @@ const AppRoutes = () => {
       <Route path="/request-status" element={<ProtectedRoute><RequestStatus /></ProtectedRoute>} />
       <Route path="/change-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
       <Route path="/announcements" element={<ProtectedRoute><Announcements /></ProtectedRoute>} />
-      <Route path="/create-user" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
+      <Route path="/create-user" element={<ProtectedRoute><CreateUser /></ProtectedRoute>} />
       
-      {/* Redirect root to home or login */}
       <Route path="/" element={<Navigate to="/home" replace />} />
-      
-      {/* Catch-all */}
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
