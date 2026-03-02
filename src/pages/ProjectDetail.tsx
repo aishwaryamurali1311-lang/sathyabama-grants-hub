@@ -5,83 +5,68 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 import { 
-  Building2, 
-  GraduationCap, 
-  IndianRupee, 
-  Calendar, 
-  Clock,
-  Download,
-  FileText,
-  UserPlus,
-  Trash2,
-  Check,
-  File
+  Building2, GraduationCap, IndianRupee, Calendar, Clock,
+  Download, FileText, UserPlus, Trash2, Check, File
 } from 'lucide-react';
-import { mockProjects, mockDocuments, mockTeamMembers, mockActivities } from '@/data/mockData';
+import { useProject, useProjectDocuments, useProjectTeam, useProjectActivities } from '@/hooks/useProjects';
 import { cn } from '@/lib/utils';
+import { Skeleton } from '@/components/ui/skeleton';
+
+const statusMap: Record<string, string> = {
+  on_going: 'On-Going', completed: 'Completed', terminated: 'Terminated',
+};
 
 const ProjectDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  const project = mockProjects.find(p => p.id === id);
-  const documents = mockDocuments.filter(d => d.projectId === id);
-  const teamMembers = mockTeamMembers.filter(t => t.projectId === id);
-  const activities = mockActivities.filter(a => a.projectId === id);
+  const { data: project, isLoading } = useProject(id);
+  const { data: documents = [] } = useProjectDocuments(id);
+  const { data: teamMembers = [] } = useProjectTeam(id);
+  const { data: activities = [] } = useProjectActivities(id);
+
+  if (isLoading) {
+    return <MainLayout><Skeleton className="h-96 w-full" /></MainLayout>;
+  }
 
   if (!project) {
     return (
       <MainLayout>
         <div className="text-center py-12">
           <p className="text-muted-foreground">Project not found</p>
-          <Button onClick={() => navigate('/home')} className="mt-4">
-            Go Back
-          </Button>
+          <Button onClick={() => navigate('/home')} className="mt-4">Go Back</Button>
         </div>
       </MainLayout>
     );
   }
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-IN').format(amount);
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-GB', {
-      day: 'numeric',
-      month: 'numeric',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
+  const formatCurrency = (amount: number) => new Intl.NumberFormat('en-IN').format(amount);
+  const formatDate = (dateString: string) =>
+    new Date(dateString).toLocaleDateString('en-GB', {
+      day: 'numeric', month: 'numeric', year: 'numeric',
+      hour: '2-digit', minute: '2-digit',
     });
-  };
 
-  const balanceToGet = project.sanctionedBudget - project.receivedBudget;
-  const availableBudget = project.receivedBudget - project.utilizedBudget;
+  const sanctioned = Number(project.sanctioned_budget);
+  const received = Number(project.received_budget);
+  const utilized = Number(project.utilized_budget);
+  const balanceToGet = sanctioned - received;
+  const availableBudget = received - utilized;
 
   const getStatusBadgeClass = (status: string) => {
     switch (status) {
-      case 'Completed':
-        return 'bg-foreground text-background';
-      case 'On-Going':
-        return 'bg-success text-success-foreground';
-      case 'Terminated':
-        return 'bg-destructive text-destructive-foreground';
-      default:
-        return 'bg-muted text-muted-foreground';
+      case 'completed': return 'bg-foreground text-background';
+      case 'on_going': return 'bg-success text-success-foreground';
+      case 'terminated': return 'bg-destructive text-destructive-foreground';
+      default: return 'bg-muted text-muted-foreground';
     }
   };
 
-  const investigators = teamMembers.filter(t => t.type === 'investigator');
-  const manpower = teamMembers.filter(t => t.type === 'manpower');
+  const investigators = teamMembers.filter(t => ['PI', 'Co-PI'].includes(t.role_on_project));
+  const manpower = teamMembers.filter(t => !['PI', 'Co-PI'].includes(t.role_on_project));
 
   return (
     <MainLayout>
@@ -89,9 +74,9 @@ const ProjectDetail: React.FC = () => {
         {/* Project Header */}
         <div className="space-y-2">
           <h1 className="text-2xl font-bold text-primary">{project.title}</h1>
-          <p className="text-sm text-muted-foreground"># {project.referenceId}</p>
+          <p className="text-sm text-muted-foreground"># {project.reference_id}</p>
           <Badge className={getStatusBadgeClass(project.status)}>
-            {project.status}
+            {statusMap[project.status] || project.status}
           </Badge>
         </div>
 
@@ -101,23 +86,23 @@ const ProjectDetail: React.FC = () => {
             <div className="grid grid-cols-5 divide-x">
               <div className="p-4 flex items-center gap-3">
                 <Building2 className="h-5 w-5 text-muted-foreground" />
-                <span className="text-sm">{project.fundingAgency}</span>
+                <span className="text-sm">{project.funding_agency}</span>
               </div>
               <div className="p-4 flex items-center gap-3">
                 <GraduationCap className="h-5 w-5 text-muted-foreground" />
-                <span className="text-sm">{project.department}</span>
+                <span className="text-sm">{(project.departments as any)?.name}</span>
               </div>
               <div className="p-4 flex items-center gap-3">
                 <IndianRupee className="h-5 w-5 text-muted-foreground" />
-                <span className="text-sm">{formatCurrency(project.sanctionedBudget)}</span>
+                <span className="text-sm">{formatCurrency(sanctioned)}</span>
               </div>
               <div className="p-4 flex items-center gap-3">
                 <Calendar className="h-5 w-5 text-muted-foreground" />
-                <span className="text-sm">{project.sanctionedDate}</span>
+                <span className="text-sm">{project.sanctioned_date || 'N/A'}</span>
               </div>
               <div className="p-4 flex items-center gap-3">
                 <Clock className="h-5 w-5 text-muted-foreground" />
-                <span className="text-sm">{project.duration}</span>
+                <span className="text-sm">{project.duration_months} months</span>
               </div>
             </div>
           </CardContent>
@@ -134,14 +119,14 @@ const ProjectDetail: React.FC = () => {
                 <span className="text-sm text-muted-foreground">Utilized Budget:</span>
                 <div className="flex items-center gap-1">
                   <IndianRupee className="h-3 w-3" />
-                  <span className="text-sm font-medium">{formatCurrency(project.utilizedBudget)}</span>
+                  <span className="text-sm font-medium">{formatCurrency(utilized)}</span>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">Received Budget:</span>
                 <div className="flex items-center gap-1">
                   <IndianRupee className="h-3 w-3" />
-                  <span className="text-sm font-medium">{formatCurrency(project.receivedBudget)}</span>
+                  <span className="text-sm font-medium">{formatCurrency(received)}</span>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -169,12 +154,8 @@ const ProjectDetail: React.FC = () => {
           <CardHeader className="flex flex-row items-center justify-between pb-3">
             <CardTitle className="text-lg text-primary">Project Documents</CardTitle>
             <div className="flex gap-2">
-              <Button variant="ghost" size="icon" className="h-8 w-8">
-                <FileText className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="icon" className="h-8 w-8">
-                <File className="h-4 w-4" />
-              </Button>
+              <Button variant="ghost" size="icon" className="h-8 w-8"><FileText className="h-4 w-4" /></Button>
+              <Button variant="ghost" size="icon" className="h-8 w-8"><File className="h-4 w-4" /></Button>
             </div>
           </CardHeader>
           <CardContent>
@@ -194,42 +175,32 @@ const ProjectDetail: React.FC = () => {
                   <TableRow key={doc.id}>
                     <TableCell className="font-medium">{doc.year}</TableCell>
                     <TableCell>
-                      {doc.releaseOrder ? (
+                      {doc.release_order ? (
                         <Button variant="default" size="sm" className="h-7 text-xs">
-                          <Download className="h-3 w-3 mr-1" />
-                          Attachment
+                          <Download className="h-3 w-3 mr-1" />Attachment
                         </Button>
-                      ) : (
-                        <span className="text-destructive text-sm">No Attachment</span>
-                      )}
+                      ) : <span className="text-destructive text-sm">No Attachment</span>}
                     </TableCell>
                     <TableCell>
-                      {doc.sanctionLetter ? (
+                      {doc.sanction_letter ? (
                         <Button variant="default" size="sm" className="h-7 text-xs">
-                          <Download className="h-3 w-3 mr-1" />
-                          Attachment
+                          <Download className="h-3 w-3 mr-1" />Attachment
                         </Button>
-                      ) : (
-                        <span className="text-destructive text-sm">No Attachment</span>
-                      )}
+                      ) : <span className="text-destructive text-sm">No Attachment</span>}
                     </TableCell>
                     <TableCell>
-                      {doc.utilizationCertificate ? (
+                      {doc.utilization_certificate ? (
                         <Button variant="default" size="sm" className="h-7 text-xs">
-                          <Download className="h-3 w-3 mr-1" />
-                          Attachment
+                          <Download className="h-3 w-3 mr-1" />Attachment
                         </Button>
-                      ) : (
-                        <span className="text-destructive text-sm">No Attachment</span>
-                      )}
+                      ) : <span className="text-destructive text-sm">No Attachment</span>}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
-                        <IndianRupee className="h-3 w-3" />
-                        {formatCurrency(doc.fund)}
+                        <IndianRupee className="h-3 w-3" />{formatCurrency(Number(doc.fund))}
                       </div>
                     </TableCell>
-                    <TableCell>{doc.remarks}</TableCell>
+                    <TableCell>{doc.remarks || 'NIL'}</TableCell>
                   </TableRow>
                 )) : (
                   <TableRow>
@@ -247,9 +218,7 @@ const ProjectDetail: React.FC = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-3">
             <CardTitle className="text-lg text-primary">Team</CardTitle>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              <UserPlus className="h-4 w-4" />
-            </Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8"><UserPlus className="h-4 w-4" /></Button>
           </CardHeader>
           <CardContent>
             <Table>
@@ -268,55 +237,55 @@ const ProjectDetail: React.FC = () => {
                 {investigators.length > 0 && (
                   <>
                     <TableRow>
-                      <TableCell colSpan={7} className="bg-muted/50 text-center font-medium py-2">
-                        Investigators
-                      </TableCell>
+                      <TableCell colSpan={7} className="bg-muted/50 text-center font-medium py-2">Investigators</TableCell>
                     </TableRow>
-                    {investigators.map((member) => (
-                      <TableRow key={member.id}>
-                        <TableCell>{member.name}</TableCell>
-                        <TableCell>{member.email}</TableCell>
-                        <TableCell>{member.role}</TableCell>
-                        <TableCell>{member.department}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1">
-                            <IndianRupee className="h-3 w-3" />
-                            {member.stipend}
-                          </div>
-                        </TableCell>
-                        <TableCell>{member.mobileNumber}</TableCell>
-                        <TableCell></TableCell>
-                      </TableRow>
-                    ))}
+                    {investigators.map((member) => {
+                      const p = member.profiles as any;
+                      return (
+                        <TableRow key={member.id}>
+                          <TableCell>{p?.name}</TableCell>
+                          <TableCell>{p?.email}</TableCell>
+                          <TableCell>{member.role_on_project}</TableCell>
+                          <TableCell>{p?.departments?.name}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1">
+                              <IndianRupee className="h-3 w-3" />{member.stipend ?? 0}
+                            </div>
+                          </TableCell>
+                          <TableCell>{p?.mobile_number}</TableCell>
+                          <TableCell></TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </>
                 )}
                 {manpower.length > 0 && (
                   <>
                     <TableRow>
-                      <TableCell colSpan={7} className="bg-muted/50 text-center font-medium py-2">
-                        Man Power
-                      </TableCell>
+                      <TableCell colSpan={7} className="bg-muted/50 text-center font-medium py-2">Man Power</TableCell>
                     </TableRow>
-                    {manpower.map((member) => (
-                      <TableRow key={member.id}>
-                        <TableCell>{member.name}</TableCell>
-                        <TableCell>{member.email}</TableCell>
-                        <TableCell>{member.role}</TableCell>
-                        <TableCell>{member.department}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1">
-                            <IndianRupee className="h-3 w-3" />
-                            {formatCurrency(member.stipend)}
-                          </div>
-                        </TableCell>
-                        <TableCell>{member.mobileNumber}</TableCell>
-                        <TableCell>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {manpower.map((member) => {
+                      const p = member.profiles as any;
+                      return (
+                        <TableRow key={member.id}>
+                          <TableCell>{p?.name}</TableCell>
+                          <TableCell>{p?.email}</TableCell>
+                          <TableCell>{member.role_on_project}</TableCell>
+                          <TableCell>{p?.departments?.name}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1">
+                              <IndianRupee className="h-3 w-3" />{formatCurrency(Number(member.stipend ?? 0))}
+                            </div>
+                          </TableCell>
+                          <TableCell>{p?.mobile_number}</TableCell>
+                          <TableCell>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </>
                 )}
                 {teamMembers.length === 0 && (
@@ -334,24 +303,15 @@ const ProjectDetail: React.FC = () => {
         {/* Activities */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-3">
-            <CardTitle className="text-lg text-primary">Activites</CardTitle>
-            <div className="flex gap-2">
-              <Button variant="ghost" size="icon" className="h-8 w-8">
-                <Calendar className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="icon" className="h-8 w-8">
-                <FileText className="h-4 w-4" />
-              </Button>
-            </div>
+            <CardTitle className="text-lg text-primary">Activities</CardTitle>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead className="bg-secondary/50">Type</TableHead>
-                  <TableHead className="bg-secondary/50">Report</TableHead>
+                  <TableHead className="bg-secondary/50">Description</TableHead>
                   <TableHead className="bg-secondary/50">Revenue Information</TableHead>
-                  <TableHead className="bg-secondary/50">Recurring</TableHead>
                   <TableHead className="bg-secondary/50">
                     <Clock className="h-4 w-4" />
                   </TableHead>
@@ -361,33 +321,36 @@ const ProjectDetail: React.FC = () => {
               <TableBody>
                 {activities.map((activity) => (
                   <TableRow key={activity.id}>
-                    <TableCell className="font-medium">{activity.type}</TableCell>
-                    <TableCell>{activity.report}</TableCell>
+                    <TableCell className="font-medium">{activity.type.replace(/_/g, ' ')}</TableCell>
+                    <TableCell>{activity.description}</TableCell>
                     <TableCell>
-                      {activity.amount !== undefined && (
+                      {activity.amount != null && (
                         <div className={cn(
                           'inline-flex items-center gap-1 px-3 py-1 rounded text-sm font-medium',
-                          activity.amount >= 0 ? 'revenue-positive' : 'revenue-negative'
+                          Number(activity.amount) >= 0 ? 'revenue-positive' : 'revenue-negative'
                         )}>
                           <IndianRupee className="h-3 w-3" />
-                          {formatCurrency(Math.abs(activity.amount))}
+                          {formatCurrency(Math.abs(Number(activity.amount)))}
                         </div>
                       )}
                     </TableCell>
-                    <TableCell>
-                      {activity.isRecurring && <Check className="h-4 w-4" />}
-                    </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
-                      {formatDate(activity.timestamp)}
+                      {formatDate(activity.created_at)}
                     </TableCell>
                     <TableCell>
-                      <span className="text-destructive text-sm">No Attachment</span>
+                      {activity.attachment ? (
+                        <Button variant="default" size="sm" className="h-7 text-xs">
+                          <Download className="h-3 w-3 mr-1" />Attachment
+                        </Button>
+                      ) : (
+                        <span className="text-destructive text-sm">No Attachment</span>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
                 {activities.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
                       No activities recorded yet
                     </TableCell>
                   </TableRow>

@@ -15,7 +15,7 @@ import { useAuth, getRoleLabel } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 
 const Sidebar: React.FC = () => {
-  const { user, logout } = useAuth();
+  const { profile, logout } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -23,17 +23,18 @@ const Sidebar: React.FC = () => {
     navigate('/login');
   };
 
-  // Navigation items based on role
+  const role = profile?.role;
+
   const getNavItems = () => {
     const baseItems = [
       { to: '/home', icon: Home, label: 'Home' },
     ];
 
-    if (user?.role === 'hod' || user?.role === 'dean') {
+    if (role === 'admin' || role === 'superadmin') {
       baseItems.push({ to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' });
     }
 
-    if (user?.role === 'hod' || user?.role === 'dean') {
+    if (role === 'admin' || role === 'superadmin') {
       baseItems.push({ to: '/projects', icon: FolderOpen, label: 'Projects' });
     }
 
@@ -43,7 +44,7 @@ const Sidebar: React.FC = () => {
       { to: '/projects-table', icon: Table, label: 'Projects Table' },
     );
 
-    if (user?.role === 'hod') {
+    if (role === 'admin' || role === 'superadmin') {
       baseItems.push({ to: '/create-user', icon: UserPlus, label: 'Create User' });
     }
 
@@ -63,9 +64,9 @@ const Sidebar: React.FC = () => {
             Project Monitoring Portal
           </h2>
         </div>
-        {user && (
+        {profile && (
           <p className="text-xs text-primary text-center mt-2 font-medium">
-            {getRoleLabel(user.role)}
+            {getRoleLabel(profile.role)}
           </p>
         )}
       </div>

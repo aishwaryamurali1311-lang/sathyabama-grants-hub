@@ -8,24 +8,26 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ onAddProject }) => {
-  const { user } = useAuth();
+  const { profile } = useAuth();
 
   return (
     <header className="w-full">
       {/* Top bar with Add Project button */}
       <div className="flex items-center justify-between px-4 py-2 bg-background border-b">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onAddProject}
-          className="flex items-center gap-1 text-primary border-primary hover:bg-primary/5"
-        >
-          <Plus className="h-4 w-4" />
-          Add Project
-        </Button>
+        {profile && ['superadmin', 'admin', 'pi'].includes(profile.role) ? (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onAddProject}
+            className="flex items-center gap-1 text-primary border-primary hover:bg-primary/5"
+          >
+            <Plus className="h-4 w-4" />
+            Add Project
+          </Button>
+        ) : <div />}
         
         <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">{user?.email}</span>
+          <span className="text-sm text-muted-foreground">{profile?.email}</span>
           <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center">
             <User className="h-4 w-4 text-primary-foreground" />
           </div>
@@ -35,7 +37,6 @@ const Header: React.FC<HeaderProps> = ({ onAddProject }) => {
       {/* Maroon banner with logo */}
       <div className="bg-primary px-6 py-4">
         <div className="flex items-center gap-4">
-          {/* Logo placeholder - institutional seal */}
           <div className="h-16 w-16 rounded-full bg-primary-foreground/10 border-2 border-primary-foreground/30 flex items-center justify-center">
             <span className="text-primary-foreground text-xs font-bold">SIST</span>
           </div>
@@ -58,10 +59,10 @@ const Header: React.FC<HeaderProps> = ({ onAddProject }) => {
       </div>
 
       {/* Role banner */}
-      {user && (
+      {profile && (
         <div className="bg-secondary py-2 text-center">
           <span className="text-sm font-medium text-secondary-foreground">
-            {getRoleLabel(user.role)}
+            {getRoleLabel(profile.role)}
           </span>
         </div>
       )}
