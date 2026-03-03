@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -22,15 +23,15 @@ const Login: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const success = await login(email, password);
-      if (success) {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (!error) {
         toast({ title: 'Login successful', description: 'Welcome to the Revenue Monitoring Portal' });
         navigate('/home');
       } else {
-        toast({ title: 'Login failed', description: 'Invalid email or password', variant: 'destructive' });
+        toast({ title: 'Login failed', description: error.message, variant: 'destructive' });
       }
-    } catch (error) {
-      toast({ title: 'Error', description: 'An error occurred during login', variant: 'destructive' });
+    } catch (error: any) {
+      toast({ title: 'Network Error', description: error?.message || 'Could not reach the server. Please try again.', variant: 'destructive' });
     } finally {
       setIsLoading(false);
     }
