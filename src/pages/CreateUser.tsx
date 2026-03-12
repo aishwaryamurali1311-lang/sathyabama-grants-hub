@@ -14,7 +14,11 @@ import { useQuery } from '@tanstack/react-query';
 const ROLE_HIERARCHY: Record<string, { value: string; label: string }[]> = {
   superadmin: [{ value: 'admin', label: 'Department Admin (HOD)' }],
   admin: [{ value: 'pi', label: 'Principal Investigator' }],
-  pi: [{ value: 'co_pi', label: 'Co-Principal Investigator' }],
+  pi: [
+    { value: 'co_pi', label: 'Co-Principal Investigator' },
+    { value: 'jrf', label: 'JRF' },
+    { value: 'assistant', label: 'Project Assistant' },
+  ],
   co_pi: [
     { value: 'assistant', label: 'Assistant' },
     { value: 'jrf', label: 'JRF' },
