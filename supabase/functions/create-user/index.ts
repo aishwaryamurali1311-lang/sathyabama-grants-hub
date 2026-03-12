@@ -14,6 +14,14 @@ const ROLE_HIERARCHY: Record<string, string[]> = {
   co_pi: ['assistant', 'jrf', 'student'],
 };
 
+// Map app role to project role label
+const ROLE_PROJECT_LABEL: Record<string, string> = {
+  co_pi: 'Co-PI',
+  jrf: 'JRF',
+  assistant: 'Project Assistant',
+  student: 'Student',
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -50,7 +58,7 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Creator profile not found' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    const { email, password, name, role, department_id, mobile_number } = await req.json();
+    const { email, password, name, role, department_id, mobile_number, project_id } = await req.json();
 
     // Validate required fields
     if (!email || !password || !name || !role) {
@@ -90,6 +98,39 @@ serve(async (req) => {
 
     if (updateError) {
       console.error('Profile update error:', updateError);
+    }
+
+    // If a project_id is provided, add the new user as a team member
+    if (project_id) {
+      // Get the new user's profile id
+      const { data: newProfile } = await supabaseAdmin
+        .from('profiles')
+        .select('id')
+        .eq('user_id', newUser.user!.id)
+        .single();
+
+      if (newProfile) {
+        const roleLabel = ROLE_PROJECT_LABEL[role] || role;
+        const { error: teamError } = await supabaseAdmin
+          .from('team_members')
+          .insert({
+            project_id,
+            profile_id: newProfile.id,
+            role_on_project: roleLabel,
+          });
+
+        if (teamError) {
+          console.error('Team member insert error:', teamError);
+        }
+
+        // Log team member addition
+        await supabaseAdmin.from('activity_logs').insert({
+          user_id: user.id,
+          project_id,
+          type: 'team_member_added',
+          description: `${name} (${roleLabel}) added to project by ${creatorProfile.name}`,
+        });
+      }
     }
 
     // Log activity
