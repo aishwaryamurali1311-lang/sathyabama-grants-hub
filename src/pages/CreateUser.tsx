@@ -51,7 +51,11 @@ const CreateUser: React.FC = () => {
     setIsLoading(false);
 
     if (error || data?.error) {
-      toast({ title: 'Error', description: data?.error || error?.message || 'Failed to create user', variant: 'destructive' });
+      const rawMsg = data?.error || error?.message || 'Failed to create user';
+      const friendlyMsg = rawMsg.includes('already been registered')
+        ? 'A user with this email already exists. Please use a different email.'
+        : rawMsg;
+      toast({ title: 'Error', description: friendlyMsg, variant: 'destructive' });
     } else {
       toast({ title: 'Success', description: `User ${formData.name} created successfully` });
       setFormData({ name: '', email: '', password: '', role: '', department_id: '', mobile_number: '' });
