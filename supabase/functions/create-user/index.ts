@@ -10,7 +10,7 @@ const corsHeaders = {
 const ROLE_HIERARCHY: Record<string, string[]> = {
   superadmin: ['admin'],
   admin: ['pi'],
-  pi: ['co_pi'],
+  pi: ['co_pi', 'jrf', 'assistant'],
   co_pi: ['assistant', 'jrf', 'student'],
 };
 

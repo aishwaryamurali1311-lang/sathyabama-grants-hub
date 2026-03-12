@@ -44,7 +44,7 @@ const Sidebar: React.FC = () => {
       { to: '/projects-table', icon: Table, label: 'Projects Table' },
     );
 
-    if (role === 'admin' || role === 'superadmin') {
+    if (role === 'admin' || role === 'superadmin' || role === 'pi') {
       baseItems.push({ to: '/create-user', icon: UserPlus, label: 'Create User' });
     }
 
