@@ -31,7 +31,7 @@ const CreateUser: React.FC = () => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
-    name: '', email: '', password: '', role: '', department_id: '', mobile_number: '',
+    name: '', email: '', password: '', role: '', department_id: '', mobile_number: '', project_id: '',
   });
 
   const { data: departments } = useQuery({
@@ -42,7 +42,25 @@ const CreateUser: React.FC = () => {
     },
   });
 
+  // Fetch projects that the current user has access to (for PI/Co-PI assigning team members)
+  const { data: projects } = useQuery({
+    queryKey: ['my_projects'],
+    enabled: profile?.role === 'pi' || profile?.role === 'co_pi',
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('projects')
+        .select('id, title, reference_id')
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false });
+      return data ?? [];
+    },
+  });
+
   const allowedRoles = profile ? (ROLE_HIERARCHY[profile.role] || []) : [];
+
+  // Show project selector when PI/Co-PI creates sub-roles
+  const showProjectSelector = (profile?.role === 'pi' || profile?.role === 'co_pi') && 
+    ['co_pi', 'jrf', 'assistant', 'student'].includes(formData.role);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,7 +80,7 @@ const CreateUser: React.FC = () => {
       toast({ title: 'Error', description: friendlyMsg, variant: 'destructive' });
     } else {
       toast({ title: 'Success', description: `User ${formData.name} created successfully` });
-      setFormData({ name: '', email: '', password: '', role: '', department_id: '', mobile_number: '' });
+      setFormData({ name: '', email: '', password: '', role: '', department_id: '', mobile_number: '', project_id: '' });
     }
   };
 
@@ -101,7 +119,7 @@ const CreateUser: React.FC = () => {
               </div>
               <div className="space-y-2">
                 <Label>Role</Label>
-                <Select value={formData.role} onValueChange={v => setFormData(p => ({ ...p, role: v }))}>
+                <Select value={formData.role} onValueChange={v => setFormData(p => ({ ...p, role: v, project_id: '' }))}>
                   <SelectTrigger><SelectValue placeholder="Select role" /></SelectTrigger>
                   <SelectContent>
                     {allowedRoles.map(r => (
@@ -121,6 +139,24 @@ const CreateUser: React.FC = () => {
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+              )}
+              {showProjectSelector && (
+                <div className="space-y-2">
+                  <Label>Assign to Project</Label>
+                  <Select value={formData.project_id} onValueChange={v => setFormData(p => ({ ...p, project_id: v }))}>
+                    <SelectTrigger><SelectValue placeholder="Select project (optional)" /></SelectTrigger>
+                    <SelectContent>
+                      {(projects ?? []).map(p => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.title} ({p.reference_id})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Optionally assign this user to a project as a team member.
+                  </p>
                 </div>
               )}
               <div className="space-y-2">
