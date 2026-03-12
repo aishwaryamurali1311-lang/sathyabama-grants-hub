@@ -1,14 +1,29 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Plus, User } from 'lucide-react';
+import { Plus, User, LogOut, ChevronDown } from 'lucide-react';
 import { useAuth, getRoleLabel } from '@/contexts/AuthContext';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { useNavigate } from 'react-router-dom';
 
 interface HeaderProps {
   onAddProject?: () => void;
 }
 
 const Header: React.FC<HeaderProps> = ({ onAddProject }) => {
-  const { profile } = useAuth();
+  const { profile, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
+  };
 
   return (
     <header className="w-full">
@@ -28,9 +43,32 @@ const Header: React.FC<HeaderProps> = ({ onAddProject }) => {
         
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">{profile?.email}</span>
-          <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center">
-            <User className="h-4 w-4 text-primary-foreground" />
-          </div>
+          
+          {/* User Dropdown Menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="h-8 w-8 rounded-full bg-primary flex items-center justify-center hover:bg-primary/90 transition-colors">
+                <User className="h-4 w-4 text-primary-foreground" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel>
+                <div className="flex flex-col">
+                  <span className="font-medium">{profile?.name || profile?.email}</span>
+                  <span className="text-xs text-muted-foreground">{profile?.email}</span>
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem className="text-muted-foreground">
+                <span className="text-xs">{profile ? getRoleLabel(profile.role) : 'User'}</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleLogout} className="text-destructive cursor-pointer">
+                <LogOut className="h-4 w-4 mr-2" />
+                Logout
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
